@@ -37,19 +37,22 @@ typedef enum {
 void fsmError( void );
 void fsmInit( void );
 void End(void);
-bool botonOnOff(uint8_t onoff); //funcion que me permite conocoer el estado de la tecla on-off
 
 states_t estados;
 
 
-
-static int value = 0; //Variable que me da el estado del power on-off
+const int timeThreshold = 400;
+const int intPin = 3;
+volatile int ISRCounter = 0;
+uint8_t counter = 0;
+long startTime = 0;
 char key;      //Variable caracter  que me devuelve un la tecla de los motores
-bool bateaEncendidaHorario = false; //No se si se llama batea o amasadora
+
 
 void setup() {
   Serial.begin(9600);
   fsmInit();
+  attachInterrupt(digitalPinToInterrupt(intPin), debounceCount, FALLING);
 }
 
 void loop() {
@@ -69,38 +72,26 @@ void fsmInit( void ) {
   pinMode(sentidoAntihorario, OUTPUT);
   pinMode(velocidadlenta, OUTPUT);
   pinMode(velocidadrapida, OUTPUT);
-  pinMode(POWER, INPUT);
+  
+  pinMode(POWER,OUTPUT );
   digitalWrite(sentidohorario, HIGH);
   digitalWrite(sentidoAntihorario, HIGH);
   digitalWrite(velocidadlenta, HIGH);
   digitalWrite(velocidadrapida, HIGH);
+  digitalWrite(POWER, HIGH);
+  
 }
 
 void fsmUpdate(states_t states) {
-
-  //static bool flagFalling = false;
-  //static bool flagRising = false;
-  //static uint8_t contFalling = 0;
-  //static uint8_t contRising = 0;
-
-  value = botonOnOff(POWER);
-
-
-  switch ( states ) {
+  switch ( states ){
     case Inicial:
       Serial.println("Esta Inicio");
-      if (value != 1) {
-        estados = Encendido;
-      }
+      digitalWrite(POWER, HIGH);
       break;
     case Encendido:
-      Serial.println("Esta encendido");
+      ///Serial.println("Esta encendido");
       //Aqui iria todos los encendidos de los motores
-
-      if (value != 1) {
-        estados = Apagado;
-      }
-
+      digitalWrite(POWER, LOW);
       key = keypad.getKey();
       if (key == '1') {
         Serial.println(key);
@@ -116,7 +107,7 @@ void fsmUpdate(states_t states) {
         digitalWrite(velocidadrapida, LOW);
       }
       if (key == '4') {
-        bateaEncendidaHorario = false;
+        
         Serial.println(key);
         digitalWrite(sentidohorario, HIGH);
         delay(1000);
@@ -127,41 +118,23 @@ void fsmUpdate(states_t states) {
         digitalWrite(sentidoAntihorario, HIGH);  //Apago primero el motor en un giro y espero 1 seg
         delay(1000);
         digitalWrite(sentidohorario, LOW);
-        bateaEncendidaHorario = true;
-        Serial.println(bateaEncendidaHorario);
-      }
+     }
       break;
     case Apagado:
-      Serial.println("Esta Apagado");
+      //Serial.println("Esta Apagado");
+      digitalWrite(POWER, HIGH);
       End(); //Aqui Apago los motores
       //Apagria Todos o solo los que etsna encendidos en alguna secuenci?
-      if (value != 1) {
-        estados = Encendido;
-      }
-      break;
+     break;
     default:
       fsmError();
       break;
   }
-
 }
 
-bool botonOnOff(uint8_t onoff) {
-  uint8_t aux;
-  aux = digitalRead(onoff);
-  delay(250);
-  if (aux) {
-    return true;
-  }
-  else {
-    return false;
-  }
-}
 
 void Start(void) {
-
 };
-
 /*
    Funcion que me apaga os 4 reles
 */
@@ -172,76 +145,33 @@ void End(void) {
   digitalWrite(velocidadrapida, HIGH);
 };
 
-//Funcion que me devuelva el estado del rele que esta activo
-
-
-
-
-/*
-
-
-     }
-
-    if (key=='1') {
-    Serial.println(key);
-    digitalWrite(velocidadlenta, LOW);
-   }
-
-  if (key=='2') {
-    Serial.println(key);
-
-   }
-  if (key=='3') {
-    Serial.println(key);
-    digitalWrite(velocidarapida, LOW);
-  }
-  if (key=='6') {
-    Serial.println(key);
-    digitalWrite(sentidohorario, LOW);
-
-   }
-  if (key=='4') {
-    Serial.println(key);
-  digitalWrite(sentidoAntihorario, LOW);
-  }
-  if (value == LOW) {
-    Serial.println("Encendido");
-    digitalWrite(velocidadlenta, LOW);
+//Funcion de la interrupcion para atender la tecla On-Off
+void debounceCount()
+{
+  if (millis() - startTime > timeThreshold)
+  {
+    ISRCounter++;
+    startTime = millis();
   }
 
-  char key = keypad.getKey();
+   if (counter != ISRCounter)
+  {
+    counter = ISRCounter;
+    counter=counter %3;
+    
+    Serial.println(counter);
 
-
-
-
-  if (key=='1') {
-    Serial.println(key);
-    digitalWrite(velocidadlenta, LOW);
-
-
+    if(counter==0){
+      estados=Inicial;
+      
+    }
+    if(counter==1){
+      estados=Encendido;
+      
+    }
+    if(counter==2){
+      estados=Apagado;
+      
+    }
   }
-
-  if (key=='2') {
-    Serial.println(key);
-    End();
-
-  }
-  if (key=='3') {
-    Serial.println(key);
-    digitalWrite(velocidarapida, LOW);
-
-
-  }
-
-  if (key=='6') {
-    Serial.println(key);
-   digitalWrite(sentidohorario, LOW);
-
-
-  }
-  if (key=='4') {
-    Serial.println(key);
-  digitalWrite(sentidoAntihorario, LOW);
-
-
-  }*/
+}
