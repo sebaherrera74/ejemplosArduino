@@ -6,7 +6,7 @@
 # define  velocidadlenta     12   //defino pines de salida nro 12 correpsondiente a rele de activacion de velocidad lenta 
 # define  velocidadrapida     13   //defino pines de salida nro 12 correpsondiente a rele de activacion de velocidad rapida 
 # define  UN_SEG    1000  //defino tiempo 1 segundo 
-# define  POWER               4   //tecla entre 8 y 9 para encendido
+# define  POWER               4   
 
 
 const byte rowsCount = 2;
